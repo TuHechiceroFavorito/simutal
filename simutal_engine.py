@@ -5,11 +5,14 @@
 
 
 # AND gate
-class AND():
-    def __init__(self, inputs, output_name):
+class AND:
+    def __init__(self, inputs, output_name, inv_mask):
         self.inputs = inputs
         self.output_name = output_name
+        self.inv_mask = inv_mask
+        self.type = "AND"
         
+    # Compute the output with current inputs
     def compute(self):
         for input in self.inputs.values():
             if input == 0:
@@ -21,11 +24,13 @@ class AND():
         return self.output
 
 # OR gate
-class OR():
-    def __init__(self, inputs, output_name):
+class OR:
+    def __init__(self, inputs, output_name, inv_mask):
         self.inputs = inputs
         self.output_name = output_name
+        self.type = "OR"
         
+    # Compute the output with current inputs
     def compute(self):
         for input in self.inputs.values():
             if input == 1:
@@ -36,118 +41,123 @@ class OR():
 
         return self.output
 
-def read_instructions(filename):
-    with open(filename, "r") as f:
-        instructions = f.read()
-    declaration, process = instructions.split("set:")
-    declaration = list(filter(None, declaration.split("\n")))
-    process = list(filter(None, process.split("\n")))
-    return declaration, process
+# Class circuit. This holds the declarations and the processes
+class Circuit:
+    def __init__(self, filename):
+        self.declaration, self.process = self.read_instructions(filename)
+        self.elements = []
+        self.read_instructions(filename)
+        self.set_process()
+        self.set_declarations()
 
-def run_process(process):
-    assigns = []
-    outs = []
+    def print_elements(self):
+        for element in self.elements:
+            print(element.type, element.inputs, element.output_name)
 
-    for instruction in process:
-        if "//" in instruction:
-            pass
-        if "=" in instruction:
-            assigns.append(instruction)
-        if "->" in instruction:
-            outs.append(instruction)
+    def read_instructions(self, filename):
+        with open(filename, "r") as f:
+            instructions = f.read()
+        declaration, process = instructions.split("set:")
+        self.declaration = list(filter(None, declaration.split("\n")))
+        self.process = list(filter(None, process.split("\n")))
+        return declaration, process
 
-    io ={
-        "i":{},
-        "o":{}
-    }
+    def set_declarations(self):
+        # Read each instruction in the declaration
+        for instr in self.declaration:
+            # Ignore comments
+            if "//" in instr:
+                pass
 
-    for out in outs:
-        out_var = out.split("-> ")[1].split(", ")
-        for var in out_var:
-            io["o"][var] = None
-
-    for assignment in assigns:
-        key, value = assignment.split("=")
-        io["i"][key.lstrip()] = value.lstrip()
-
-    return io
-
-def read_gate(definition):
-    gate = definition.split("->")[0][-1]
-    if gate == "&":
-        return "AND"
-    elif gate == "|":
-        return "OR"
-
-def run_outputs(declaration, io):
-    for line in declaration:
-        if "//" in line:
-            pass
-        elif "MUX" in line:
-            inputs_desc = line.split(")")[0][5:].split(", ")
-            sel = line.split("?")[1].split()[0]
-            out = line.split()[-1]
-            if out in io["o"]:
-                if inputs_desc[int(io["i"][sel])] in io["i"]:
-                    io["o"][out] = int(io["i"][inputs_desc[int(io["i"][sel])]])
-                else:
-                    io["o"][out] = int(io["o"][inputs_desc[int(io["i"][sel])]])
+            # Generate elements
             else:
-                io["i"][out] = inputs_desc[int(io["i"][out])]
-        else:
-            gate = read_gate(line)
-            inputs_desc = line.split(")")[0][1:].split(", ")
-            inputs = []
-            for input_var in inputs_desc:
-                if input_var[0] == "!":
-                    io["i"][input_var[1]] = (1-int(io["i"][input_var[1]]))
-                    input_var = input_var[1]
-                if input_var in io["i"]:
-                    inputs.append((int(io["i"][input_var]))==1)
-                else:
-                    inputs.append((int(io["o"][input_var]))==1)
-
-            out = line.split("-> ")[-1]
-
-            result = None
-            if gate == "AND":
-                for input_val in inputs:
-                    if input_val == 0:
-                        result = 0
-                        break
+                element_type = self.read_element(instr)
+                inputs_var = instr.split(")")[0][1:].split(", ") # Get the input variables
+                # inputs = {}
+                inverting_mask = [] # Create mask to invert inputs
+                # Save input values in temp list
+                for var in range(len(inputs_var)):
+                    # Check if the variable is inverted
+                    if inputs_var[var][0] == "!":
+                        inverting_mask.append(1)
+                        inputs_var[var] = inputs_var[var][1] # Get rid of the ! sign
                     else:
-                        result = 1
+                        inverting_mask.append(0)
 
-            elif gate == "OR":
-                result = None
-                for input_val in inputs:
-                    if input_val == 1:
-                        result = 1
-                        break
-                    else:
-                        result = 0
+                    # The variable could be an input, an internal signal
+                    # or an output that is being used as an input in another element
 
-            if out in io["o"]:
-                io["o"][out] = result
-            else:
-                io["i"][out] = result
+                    # # Look for the variable in input lists and save value in temp list
+                    # if var in self.io["i"]:
+                    #     inputs[var] = self.io["i"][var]
 
-    return io
+                    # # Look in output list and save value
+                    # elif var in self.io["o"]:
+                    #     inputs[var] = self.io["o"][var]
+
+                    # # If not, it must be an internal signal
+                    # else:
+                    #     inputs[var] = self.io["internal"][var]
+
+
+                output_var = instr.split("-> ")[-1] # Get the output variable from its declaration
+
+                if element_type == "AND":
+                    new_element = AND(inputs_var, output_var, inv_mask=inverting_mask)
+
+                elif element_type == "OR":
+                    new_element = OR(inputs_var, output_var, inv_mask=inverting_mask)
+
+                self.elements.append(new_element)
+
+    # Reads the process instructions. Stores variables and sets values for inputs
+    def set_process(self):
+        # Variables to assign values to
+        var_assign = []
+        # Declared outputs
+        output_decl = []
+
+        # Read instructions from process
+        for instruction in self.process:
+            # Ignore comments
+            if "//" in instruction:
+                pass
+            # Assignment statement
+            if "=" in instruction:
+                var_assign.append(instruction)
+            # Output declaration
+            if "->" in instruction:
+                output_decl.append(instruction)
+
+        # Inputs/output dictionary
+        self.io ={
+            "i":{},
+            "internal":{},
+            "o":{}
+        }
+
+        # Put output names in io output
+        for out in output_decl:
+            out_var = out.split("-> ")[1].split(", ")
+            for var in out_var:
+                self.io["o"][var] = None
+
+        # Put input names and values in io input
+        for assignment in var_assign:
+            key, value = assignment.split("=")
+            self.io["i"][key.lstrip()] = int(value.lstrip()) # Remove empty spaces
+
+        return self.io
+
+    def read_element(slef, definition):
+        element = definition.split("->")[0][-1]
+        if element == "&":
+            return "AND"
+        elif element == "|":
+            return "OR"
 
 
 if __name__ == "__main__":
-    and1 = AND({"A":1, "B":1}, "R")
-    and1.compute()
-    or1 = OR({"C":0, "R":and1.output}, "D")
-    print(and1.compute())
-    print(or1.compute())
-    # import sys
-    # if len(sys.argv) != 2:
-    #     filename = "test.utal"
-    # else:
-    #     filename = sys.argv[1]
-    # declaration, process = read_instructions(filename)
-    # io = run_process(process)
-    # io = run_outputs(declaration, io)
-    # print(io["i"])
-    # print(io["o"])
+    circ = Circuit("test.utal")
+    print(circ.print_elements())
+    print(circ.declaration)

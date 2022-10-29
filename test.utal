@@ -4,7 +4,7 @@
 // If boot up sequence or the emergency button is pressed, the system will boot up
 
 
-MUX (boot_up, shut_down, another_input)?selector -> controlling_signal
+// MUX (boot_up, shut_down, another_input)?selector -> controlling_signal
 (btn_on, on, connected) &-> start_sequence
 (btn_off, processes_running) &-> end_sequence
 (start_sequence, emergency_on) |-> boot_up
