@@ -17,9 +17,9 @@ class Element:
     def compute(self, io):
         for index, input in enumerate(self.inputs):
             if input in io["i"]:
-                value = abs(self.inv_mask[index] - io["i"][input])
+                value = abs(self.inv_mask[0][index] - io["i"][input])
             elif input in io["internal"]:
-                value = abs(self.inv_mask[index] - io["internal"][input])
+                value = abs(self.inv_mask[0][index] - io["internal"][input])
             else:
                 print(f"ERROR: input {input} is not being driven by any signal")
                 exit()
@@ -27,6 +27,8 @@ class Element:
             if self.statement(value):
                 break
 
+        self.output = abs(self.inv_mask[1] - self.output)
+        
         if self.output_name in io["o"]:
             io["o"][self.output_name] = self.output
         elif self.output_name in io["internal"]:
@@ -54,9 +56,10 @@ class OR(Element):
             self.output = 0
 
 #MULTIPLEXER
-class MUX:
+class MUX(Element):
     def __init__(self, inputs, output_name, sel, inv_mask):
-        self.sel
+        Element.__init__(self, inputs, output_name, inv_mask)
+        self.sel = sel
 
 
 # Class circuit. This holds the declarations and the processes
@@ -93,33 +96,24 @@ class Circuit:
                 element_type = self.read_element(instr)
                 inputs_var = instr.split(")")[0][1:].split(", ") # Get the input variables
                 # inputs = {}
-                inverting_mask = [] # Create mask to invert inputs
+                inverting_mask = [[]] # Create mask to invert inputs
                 # Save input values in temp list
                 for var in range(len(inputs_var)):
                     # Check if the variable is inverted
                     if inputs_var[var][0] == "!":
-                        inverting_mask.append(1)
+                        inverting_mask[0].append(1)
                         inputs_var[var] = inputs_var[var][1:] # Get rid of the ! sign
                     else:
-                        inverting_mask.append(0)
-
-                    # The variable could be an input, an internal signal
-                    # or an output that is being used as an input in another element
-
-                    # # Look for the variable in input lists and save value in temp list
-                    # if var in self.io["i"]:
-                    #     inputs[var] = self.io["i"][var]
-
-                    # # Look in output list and save value
-                    # elif var in self.io["o"]:
-                    #     inputs[var] = self.io["o"][var]
-
-                    # # If not, it must be an internal signal
-                    # else:
-                    #     inputs[var] = self.io["internal"][var]
-
+                        inverting_mask[0].append(0)
 
                 output_var = instr.split("-> ")[-1] # Get the output variable from its declaration
+                if output_var[0] == "!":
+                        inverting_mask.append(1)
+                        print(inverting_mask)
+                        output_var = output_var[1:] # Get rid of the ! sign
+                else:
+                    inverting_mask.append(0)
+
                 if output_var not in self.io["o"]:
                     self.io["internal"][output_var] = None
 
@@ -197,7 +191,7 @@ class Circuit:
 
 if __name__ == "__main__":
     circ = Circuit("test.utal")
-    circ.print_elements()
+    # circ.print_elements()
     circ.sim()
     print(circ.io["internal"])
     print(circ.io["o"])

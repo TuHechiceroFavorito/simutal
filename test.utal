@@ -6,7 +6,7 @@
 
 (A2, !B2) &-> and3
 (!A2, B2) &-> and4
-(and3, and4) |-> C2
+(and3, and4) |-> !C2
 
 (A3, !B3) &-> and5
 (!A3, B3) &-> and6
