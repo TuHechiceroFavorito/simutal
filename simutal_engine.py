@@ -1,3 +1,41 @@
+# Definition of elements
+# Every element is a different object.
+# inputs is a dict of <name-string>:<value-int>...,
+# output_name is a string
+
+
+# AND gate
+class AND():
+    def __init__(self, inputs, output_name):
+        self.inputs = inputs
+        self.output_name = output_name
+        
+    def compute(self):
+        for input in self.inputs.values():
+            if input == 0:
+                self.output = 0
+                break
+            else:
+                self.output = 1
+
+        return self.output
+
+# OR gate
+class OR():
+    def __init__(self, inputs, output_name):
+        self.inputs = inputs
+        self.output_name = output_name
+        
+    def compute(self):
+        for input in self.inputs.values():
+            if input == 1:
+                self.output = 1
+                break
+            else:
+                self.output = 0
+
+        return self.output
+
 def read_instructions(filename):
     with open(filename, "r") as f:
         instructions = f.read()
@@ -98,13 +136,18 @@ def run_outputs(declaration, io):
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) != 2:
-        filename = "test.utal"
-    else:
-        filename = sys.argv[1]
-    declaration, process = read_instructions(filename)
-    io = run_process(process)
-    io = run_outputs(declaration, io)
-    print(io["i"])
-    print(io["o"])
+    and1 = AND({"A":1, "B":1}, "R")
+    and1.compute()
+    or1 = OR({"C":0, "R":and1.output}, "D")
+    print(and1.compute())
+    print(or1.compute())
+    # import sys
+    # if len(sys.argv) != 2:
+    #     filename = "test.utal"
+    # else:
+    #     filename = sys.argv[1]
+    # declaration, process = read_instructions(filename)
+    # io = run_process(process)
+    # io = run_outputs(declaration, io)
+    # print(io["i"])
+    # print(io["o"])
