@@ -4,6 +4,7 @@
 # output_name is a string
 
 
+
 # AND gate
 class AND:
     def __init__(self, inputs, output_name, inv_mask):
@@ -11,35 +12,79 @@ class AND:
         self.output_name = output_name
         self.inv_mask = inv_mask
         self.type = "AND"
+        self.computable = False
+        self.computed = False
         
     # Compute the output with current inputs
-    def compute(self):
-        for input in self.inputs.values():
-            if input == 0:
+    def compute(self, io):
+        for index, input in enumerate(self.inputs):
+            if input in io["i"]:
+                value = abs(self.inv_mask[index] - io["i"][input])
+            elif input in io["internal"]:
+                value = abs(self.inv_mask[index] - io["internal"][input])
+            else:
+                print(f"ERROR: input {input} is not being driven by any signal")
+                exit()
+
+            if value == 0:
                 self.output = 0
                 break
             else:
                 self.output = 1
 
-        return self.output
+        if self.output_name in io["o"]:
+            io["o"][self.output_name] = self.output
+        elif self.output_name in io["internal"]:
+            io["internal"][self.output_name] = self.output
+
+        self.computed = False
+        return io
 
 # OR gate
 class OR:
     def __init__(self, inputs, output_name, inv_mask):
         self.inputs = inputs
         self.output_name = output_name
+        self.inv_mask = inv_mask
         self.type = "OR"
+        self.computable = False
+        self.computed = False
         
     # Compute the output with current inputs
-    def compute(self):
-        for input in self.inputs.values():
-            if input == 1:
+    def compute(self, io):
+        for index, input in enumerate(self.inputs):
+            if input in io["i"]:
+                value = abs(self.inv_mask[index] - io["i"][input])
+            elif input in io["internal"]:
+                value = abs(self.inv_mask[index] - io["internal"][input])
+            else:
+                print(f"ERROR: input {input} is not being driven by any signal")
+                exit()
+
+            if value == 1:
                 self.output = 1
                 break
             else:
                 self.output = 0
 
-        return self.output
+        if self.output_name in io["o"]:
+            io["o"][self.output_name] = self.output
+        elif self.output_name in io["internal"]:
+            io["internal"][self.output_name] = self.output
+            
+        return io
+
+#MULTIPLEXER
+class MUX:
+    def __init__(self, inputs, output_name, sel, inv_mask):
+        self.inputs = inputs
+        self.output_name = output_name
+        self.sel = sel
+        self.inv_mask = inv_mask
+        self.type = "MUX"
+        self.computable = False
+        self.computed = False
+
 
 # Class circuit. This holds the declarations and the processes
 class Circuit:
@@ -49,10 +94,11 @@ class Circuit:
         self.read_instructions(filename)
         self.set_process()
         self.set_declarations()
+        self.update_elements()
 
     def print_elements(self):
         for element in self.elements:
-            print(element.type, element.inputs, element.output_name)
+            print(element.type, element.inputs, element.output_name, element.computable, element.computed)
 
     def read_instructions(self, filename):
         with open(filename, "r") as f:
@@ -80,7 +126,7 @@ class Circuit:
                     # Check if the variable is inverted
                     if inputs_var[var][0] == "!":
                         inverting_mask.append(1)
-                        inputs_var[var] = inputs_var[var][1] # Get rid of the ! sign
+                        inputs_var[var] = inputs_var[var][1:] # Get rid of the ! sign
                     else:
                         inverting_mask.append(0)
 
@@ -101,6 +147,8 @@ class Circuit:
 
 
                 output_var = instr.split("-> ")[-1] # Get the output variable from its declaration
+                if output_var not in self.io["o"]:
+                    self.io["internal"][output_var] = None
 
                 if element_type == "AND":
                     new_element = AND(inputs_var, output_var, inv_mask=inverting_mask)
@@ -123,10 +171,10 @@ class Circuit:
             if "//" in instruction:
                 pass
             # Assignment statement
-            if "=" in instruction:
+            elif "=" in instruction:
                 var_assign.append(instruction)
             # Output declaration
-            if "->" in instruction:
+            elif "->" in instruction:
                 output_decl.append(instruction)
 
         # Inputs/output dictionary
@@ -156,8 +204,27 @@ class Circuit:
         elif element == "|":
             return "OR"
 
+    def update_elements(self):
+        for element in self.elements:
+            for input in element.inputs:
+                if input in self.io["internal"] and self.io["internal"][input] != None or input in self.io["i"]:
+                    element.computable = True
+
+    def sim(self):
+        computed = False
+        while not computed:
+            for element in self.elements:
+                if element.computable and not element.computed:
+                    computed = True
+                    self.io = element.compute(self.io)
+                else:
+                    computed = False
+
+            self.update_elements()
 
 if __name__ == "__main__":
     circ = Circuit("test.utal")
-    print(circ.print_elements())
-    print(circ.declaration)
+    circ.print_elements()
+    circ.sim()
+    print(circ.io["internal"])
+    print(circ.io["o"])

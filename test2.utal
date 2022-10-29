@@ -6,7 +6,7 @@
 
 // MUX (boot_up, shut_down, another_input)?selector -> controlling_signal
 (btn_on, on, connected) &-> start_sequence
-(btn_off, !processes_running) &-> end_sequence
+(btn_off, processes_running) &-> end_sequence
 (start_sequence, emergency_on) |-> boot_up
 (end_sequence, emergency_off) |-> shut_down
 
@@ -26,8 +26,8 @@ set:
     emergency_on=0
     emergency_off=0
 
-    // another_input=1
+    another_input=1
 
     // This logic controls boot up and shut down of 2 systems
     // Selector selects either system A or B.
-    // selector=0
+    selector=0
