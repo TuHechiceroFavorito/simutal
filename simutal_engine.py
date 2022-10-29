@@ -3,76 +3,55 @@
 # inputs is a dict of <name-string>:<value-int>...,
 # output_name is a string
 
+# element class
+class Element:
+    def __init__(self, inputs, output_name, inv_mask):
+        self.inputs = inputs
+        self.output_name = output_name
+        self.inv_mask = inv_mask
+        self.type = None
+        self.computable = False
+        self.computed = False
 
+    # Compute the output with current inputs
+    def compute(self, io):
+        for index, input in enumerate(self.inputs):
+            if input in io["i"]:
+                value = abs(self.inv_mask[index] - io["i"][input])
+            elif input in io["internal"]:
+                value = abs(self.inv_mask[index] - io["internal"][input])
+            else:
+                print(f"ERROR: input {input} is not being driven by any signal")
+                exit()
+
+            if self.statement(value):
+                break
+
+        if self.output_name in io["o"]:
+            io["o"][self.output_name] = self.output
+        elif self.output_name in io["internal"]:
+            io["internal"][self.output_name] = self.output
+
+        self.computed = False
+        return io
 
 # AND gate
-class AND:
-    def __init__(self, inputs, output_name, inv_mask):
-        self.inputs = inputs
-        self.output_name = output_name
-        self.inv_mask = inv_mask
-        self.type = "AND"
-        self.computable = False
-        self.computed = False
-        
-    # Compute the output with current inputs
-    def compute(self, io):
-        for index, input in enumerate(self.inputs):
-            if input in io["i"]:
-                value = abs(self.inv_mask[index] - io["i"][input])
-            elif input in io["internal"]:
-                value = abs(self.inv_mask[index] - io["internal"][input])
-            else:
-                print(f"ERROR: input {input} is not being driven by any signal")
-                exit()
-
-            if value == 0:
-                self.output = 0
-                break
-            else:
-                self.output = 1
-
-        if self.output_name in io["o"]:
-            io["o"][self.output_name] = self.output
-        elif self.output_name in io["internal"]:
-            io["internal"][self.output_name] = self.output
-
-        self.computed = False
-        return io
+class AND(Element):
+    def statement(self, value):
+        if value == 0:
+            self.output = 0
+            return True
+        else:
+            self.output = 1
 
 # OR gate
-class OR:
-    def __init__(self, inputs, output_name, inv_mask):
-        self.inputs = inputs
-        self.output_name = output_name
-        self.inv_mask = inv_mask
-        self.type = "OR"
-        self.computable = False
-        self.computed = False
-        
-    # Compute the output with current inputs
-    def compute(self, io):
-        for index, input in enumerate(self.inputs):
-            if input in io["i"]:
-                value = abs(self.inv_mask[index] - io["i"][input])
-            elif input in io["internal"]:
-                value = abs(self.inv_mask[index] - io["internal"][input])
-            else:
-                print(f"ERROR: input {input} is not being driven by any signal")
-                exit()
-
-            if value == 1:
-                self.output = 1
-                break
-            else:
-                self.output = 0
-
-        if self.output_name in io["o"]:
-            io["o"][self.output_name] = self.output
-        elif self.output_name in io["internal"]:
-            io["internal"][self.output_name] = self.output
-            
-        return io
+class OR(Element):
+    def statement(self, value):
+        if value == 1:
+            self.output = 1
+            return True
+        else:
+            self.output = 0
 
 #MULTIPLEXER
 class MUX:
