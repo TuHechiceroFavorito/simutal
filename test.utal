@@ -1,33 +1,32 @@
-// This is a comment
-// If the btn is pressed, and the driver is on
-// and it is connected to the internet, the system will start boot up sequence
-// If boot up sequence or the emergency button is pressed, the system will boot up
+// a*!b + !a*b
 
+(A1, !B1) &-> and1
+(!A1, B1) &-> and2
+(and1, and2) |-> C1
 
-// MUX (boot_up, shut_down, another_input)?selector -> controlling_signal
-(btn_on, on, connected) &-> start_sequence
-(btn_off, !processes_running) &-> end_sequence
-(start_sequence, emergency_on) |-> boot_up
-(end_sequence, emergency_off) |-> shut_down
+(A2, !B2) &-> and3
+(!A2, B2) &-> and4
+(and3, and4) |-> C2
 
+(A3, !B3) &-> and5
+(!A3, B3) &-> and6
+(and5, and6) |-> C3
+
+(A4, !B4) &-> and7
+(!A4, B4) &-> and8
+(and7, and8) |-> C4
 
 set:
-    -> boot_up, shut_down, controlling_signal
+    -> C1, C2, C3, C4
 
-    // User controls
-    btn_on=1
-    btn_off=1
-    on=1
-    connected=1
+    A1=1
+    B1=1
 
-    processes_running=0
+    A2=1
+    B2=0
 
-    // Emergency buttons
-    emergency_on=0
-    emergency_off=0
+    A3=0
+    B3=1
 
-    // another_input=1
-
-    // This logic controls boot up and shut down of 2 systems
-    // Selector selects either system A or B.
-    // selector=0
+    A4=1
+    B4=1

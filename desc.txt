@@ -1,9 +1,11 @@
 GATES
 AND - (<input>, <input>, <input>..) &-> OUTPUT
 
-OR - (<input>, <input>, <input>..) &-> OUTPUT
+OR - (<input>, <input>, <input>..) |-> OUTPUT
 
-MULTIPLEXOR - MUX (<input>, <input>, <input>..) --> OUTPUT
+!
+
+MULTIPLEXOR - MUX (<input>, <input>, <input>..)?sel --> OUTPUT
 inputs in order of selection starting from 0
 
 PROCESS

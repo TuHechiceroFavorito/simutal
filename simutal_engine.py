@@ -56,13 +56,7 @@ class OR(Element):
 #MULTIPLEXER
 class MUX:
     def __init__(self, inputs, output_name, sel, inv_mask):
-        self.inputs = inputs
-        self.output_name = output_name
-        self.sel = sel
-        self.inv_mask = inv_mask
-        self.type = "MUX"
-        self.computable = False
-        self.computed = False
+        self.sel
 
 
 # Class circuit. This holds the declarations and the processes
